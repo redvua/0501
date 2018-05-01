@@ -1,0 +1,42 @@
+net="10.7.180."
+cache="cache.scn"
+exptime=10
+
+[ -f $cache ] && liftime=$(date -r $cache +"%s") || liftime=0
+curtime=$(date +"%s")
+let "liftime = curtime - liftime"
+
+[ -f $cache ] && oldst=( $(cat $cache) )
+# echo old ${oldst[@]}
+
+if [ $liftime -gt $exptime ]
+then
+  # echo "get data from lan"
+  > $cache
+  for i in {133..135}
+  do
+    ip="$net$i"
+    ping -c1 $ip &>>/dev/null && echo "$ip+" || echo "$ip-"
+  done >> $cache
+#else
+  # echo "get data from cache"
+fi
+
+newst=( $(cat $cache) )
+sizearray=${#newst[@]}
+# echo new ${newst[@]}
+
+> message
+for (( i=0; i<$sizearray; i++ ))
+do
+ # echo ${oldst[i]} ${newst[i]}
+ [ ${oldst[i]} ] && [ ${newst[i]} != ${oldst[i]} ] && echo ${newst[i]}
+done >> message
+
+# echo "message:"
+[ -s message ] && mail -s "notification" root < message
+
+# echo "cache:"
+# cat $cache
+
+
